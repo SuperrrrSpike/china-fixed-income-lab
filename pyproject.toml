@@ -1,0 +1,39 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "china-fixed-income-lab"
+version = "0.1.0"
+description = "中国债券晨报、一级发行跟踪与利率风险分析工具"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "Zhu Jiarui" }]
+dependencies = [
+  "akshare>=1.14",
+  "numpy>=1.26",
+  "openpyxl>=3.1",
+  "pandas>=2.1",
+  "plotly>=5.20",
+  "python-dateutil>=2.9",
+  "scipy>=1.11",
+  "streamlit>=1.36",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0"]
+
+[project.scripts]
+fixed-income-lab = "fixed_income_lab.cli:main"
+
+[tool.setuptools]
+package-dir = { "" = "src" }
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+

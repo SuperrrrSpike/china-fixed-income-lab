@@ -1,0 +1,6 @@
+bond_name,bond_type,issue_date,term_years,issue_size_billion,bid_method,result_yield_pct,status,source
+示例附息国债01,国债,2026-09-23,5,80,单一价格招标,,待发行,synthetic_sample
+示例政策性金融债02,政策性金融债,2026-09-24,10,120,荷兰式招标,,待发行,synthetic_sample
+示例高等级信用债03,信用债,2026-09-25,3,15,簿记建档,,待发行,synthetic_sample
+示例附息国债04,国债,2026-09-18,2,60,单一价格招标,1.58,已发行,synthetic_sample
+
