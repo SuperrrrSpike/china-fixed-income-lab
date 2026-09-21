@@ -1,4 +1,5 @@
 .DS_Store
+._*
 .env
 .venv/
 __pycache__/
@@ -12,4 +13,3 @@ reports/*.xlsx
 reports/*.md
 reports/*.html
 data/cache/
-
