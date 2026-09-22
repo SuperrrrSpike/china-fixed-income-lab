@@ -6,7 +6,11 @@ from pathlib import Path
 import pandas as pd
 
 from .bond import BondAnalytics, BondSpec
-from .data import fetch_china_yield_curve, sample_dataset
+from .data import (
+    fetch_china_yield_curve,
+    fetch_official_chinabond_curve,
+    sample_dataset,
+)
 from .news import OpenAICompatibleClassifier, classify_news_frame
 from .report import write_report_bundle
 
@@ -44,11 +48,18 @@ def _demo_command(args: argparse.Namespace) -> int:
 
 def _fetch_command(args: argparse.Namespace) -> int:
     dataset = sample_dataset()
-    curve = fetch_china_yield_curve(args.start, args.end, args.curve_keyword)
+    if args.source == "official":
+        curve = fetch_official_chinabond_curve(
+            args.start,
+            args.end,
+            force_refresh=args.force_refresh,
+        )
+    else:
+        curve = fetch_china_yield_curve(args.start, args.end, args.curve_keyword)
     markdown, workbook = write_report_bundle(
         curve,
-        dataset.issuance,
-        dataset.news,
+        dataset.issuance.iloc[0:0].copy(),
+        dataset.news.iloc[0:0].copy(),
         destination=Path(args.output).expanduser() if args.output else None,
     )
     print(markdown)
@@ -75,10 +86,21 @@ def build_parser() -> argparse.ArgumentParser:
     demo.add_argument("--output", help="Optional report directory")
     demo.set_defaults(func=_demo_command)
 
-    fetch = subparsers.add_parser("fetch", help="Fetch ChinaBond curve data through AKShare")
+    fetch = subparsers.add_parser("fetch", help="Fetch China government yield-curve data")
     fetch.add_argument("--start", required=True, help="YYYYMMDD")
     fetch.add_argument("--end", required=True, help="YYYYMMDD")
+    fetch.add_argument(
+        "--source",
+        choices=("official", "akshare"),
+        default="official",
+        help="Official CCDC file by default; AKShare is a fallback",
+    )
     fetch.add_argument("--curve-keyword", default="国债收益率曲线")
+    fetch.add_argument(
+        "--force-refresh",
+        action="store_true",
+        help="Redownload official annual files instead of using the cache",
+    )
     fetch.add_argument("--output", help="Optional report directory")
     fetch.set_defaults(func=_fetch_command)
 

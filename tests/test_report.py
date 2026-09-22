@@ -21,6 +21,22 @@ def test_brief_contains_key_sections():
     assert "未来七日一级发行" in brief
     assert "2Y-10Y" in brief
     assert "复核清单" in brief
+    assert "合成示例数据" in brief
+
+
+def test_official_brief_does_not_invent_issuance_or_news():
+    dataset = sample_dataset()
+    curve = dataset.curve.copy()
+    curve["source"] = "ChinaBond/CCDC official annual file"
+    brief = generate_morning_brief(
+        curve,
+        dataset.issuance.iloc[0:0].copy(),
+        dataset.news.iloc[0:0].copy(),
+    )
+    assert "收益率曲线来源：ChinaBond/CCDC official annual file" in brief
+    assert "暂无已录入的待发行债券" in brief
+    assert "暂无已录入事件" in brief
+    assert "示例附息国债" not in brief
 
 
 def test_excel_export_is_xlsx():
@@ -37,4 +53,3 @@ def test_report_bundle_writes_files(tmp_path: Path):
     assert markdown.exists()
     assert workbook.exists()
     assert "债券市场晨报" in markdown.read_text(encoding="utf-8")
-

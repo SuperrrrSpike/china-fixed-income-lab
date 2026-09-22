@@ -64,10 +64,26 @@ def generate_morning_brief(
     if "date" in news_frame:
         news_frame["date"] = pd.to_datetime(news_frame["date"], errors="coerce")
 
+    sources = sorted(curve_long["source"].dropna().astype(str).unique().tolist())
+    source_text = "、".join(sources) if sources else "未标明"
+    source_urls = (
+        sorted(curve_long["source_url"].dropna().astype(str).unique().tolist())
+        if "source_url" in curve_long
+        else []
+    )
+    is_synthetic = any("synthetic" in source.lower() for source in sources)
+    provenance_note = (
+        "> 当前为合成示例数据，只用于离线演示，不构成投资建议。"
+        if is_synthetic
+        else f"> 收益率曲线来源：{source_text}；数值由结构化数据计算。"
+    )
+
     lines = [
         f"# 债券市场晨报 {report_date:%Y-%m-%d}",
         "",
-        "> 数值来自结构化数据计算；示例数据仅用于离线演示，不构成投资建议。",
+        provenance_note,
+        *[f"> 来源链接：{url}" for url in source_urls],
+        "> 一级发行和市场事件未接入官方数据时保持为空，不使用合成记录补齐。",
         "",
         "## 收益率曲线",
         "",

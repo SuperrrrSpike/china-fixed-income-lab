@@ -8,7 +8,12 @@ import streamlit as st
 from dateutil.relativedelta import relativedelta
 
 from .bond import BondAnalytics, BondSpec
-from .data import DataSourceError, fetch_china_yield_curve, sample_dataset
+from .data import (
+    DataSourceError,
+    fetch_china_yield_curve,
+    fetch_official_chinabond_curve,
+    sample_dataset,
+)
 from .report import excel_bytes, generate_morning_brief
 from .yield_curve import apply_curve_scenario, latest_curve, term_spread, to_long_curve
 
@@ -35,21 +40,37 @@ def run_dashboard() -> None:
     dataset = sample_dataset()
     with st.sidebar:
         st.header("数据源")
-        online = st.toggle("使用 AKShare 在线收益率曲线", value=False)
+        data_source = st.selectbox(
+            "收益率曲线来源",
+            ["合成示例", "ChinaBond 官方", "AKShare 备用"],
+        )
         start_date = st.date_input("开始日期", value=date(2026, 9, 1))
         end_date = st.date_input("结束日期", value=date.today())
-        curve_keyword = st.text_input("曲线关键词", value="国债收益率曲线")
+        curve_keyword = "国债收益率曲线"
+        if data_source == "AKShare 备用":
+            curve_keyword = st.text_input("曲线关键词", value=curve_keyword)
 
     curve = dataset.curve
+    issuance = dataset.issuance
+    news = dataset.news
     source_message = "当前使用合成示例数据。"
-    if online:
+    if data_source != "合成示例":
         try:
-            curve = fetch_china_yield_curve(
-                start_date.strftime("%Y%m%d"),
-                end_date.strftime("%Y%m%d"),
-                curve_keyword,
-            )
-            source_message = "当前使用 AKShare/ChinaBond 在线数据。"
+            if data_source == "ChinaBond 官方":
+                curve = fetch_official_chinabond_curve(
+                    start_date.strftime("%Y%m%d"),
+                    end_date.strftime("%Y%m%d"),
+                )
+                source_message = "当前使用 CCDC/ChinaBond 官方年度标准期限数据。"
+            else:
+                curve = fetch_china_yield_curve(
+                    start_date.strftime("%Y%m%d"),
+                    end_date.strftime("%Y%m%d"),
+                    curve_keyword,
+                )
+                source_message = "当前使用 AKShare 转发数据（备用，非官方接口）。"
+            issuance = dataset.issuance.iloc[0:0].copy()
+            news = dataset.news.iloc[0:0].copy()
         except DataSourceError as exc:
             st.error(str(exc))
             st.info("已回退到离线示例数据。")
@@ -114,8 +135,8 @@ def run_dashboard() -> None:
     with tab_brief:
         brief = generate_morning_brief(
             curve,
-            dataset.issuance,
-            dataset.news,
+            issuance,
+            news,
         )
         st.markdown(brief)
         st.download_button(
@@ -126,7 +147,7 @@ def run_dashboard() -> None:
         )
         st.download_button(
             "下载 Excel 数据包",
-            data=excel_bytes(curve, dataset.issuance, dataset.news),
+            data=excel_bytes(curve, issuance, news),
             file_name="fixed_income_data.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         )
