@@ -1,5 +1,7 @@
 # 中国固定收益分析实验室
 
+[![CI](https://github.com/SuperrrrSpike/china-fixed-income-lab/actions/workflows/ci.yml/badge.svg)](https://github.com/SuperrrrSpike/china-fixed-income-lab/actions/workflows/ci.yml)
+
 这是一个面向证券销售交易实习场景的 Python 项目，覆盖两个可独立展示的模块：
 
 1. 债券市场晨报与一级发行跟踪系统
@@ -31,7 +33,7 @@ china-fixed-income-lab/
 │   ├── dashboard.py               # 交互式看板
 │   ├── data.py                    # ChinaBond 官方数据、AKShare 备用和离线数据
 │   ├── issuance.py                # 一级发行跟踪
-│   ├── paths.py                   # Lexar 优先的输出路径
+│   ├── paths.py                   # 本机数据与输出路径
 │   ├── report.py                  # 晨报与 Excel 导出
 │   └── yield_curve.py             # 曲线、利差与情景冲击
 └── tests/                         # 计算与数据校验
@@ -101,17 +103,15 @@ pytest
 
 ## 输出路径
 
-按以下优先级选择输出目录：
+项目默认完全在本机运行，不依赖外置硬盘。按以下优先级选择输出目录：
 
 1. 环境变量 `FIXED_INCOME_OUTPUT_DIR`
-2. `/Volumes/Lexar_Spike/项目归档/china-fixed-income-lab/reports`，仅在 Lexar 已挂载且可写时使用
-3. 仓库本地 `reports/`
+2. 仓库本地 `reports/`
 
 官方原始数据缓存按以下优先级选择：
 
 1. 环境变量 `FIXED_INCOME_DATA_DIR`
-2. `/Volumes/Lexar_Spike/项目归档/china-fixed-income-lab/data/raw`
-3. 仓库本地 `data/raw/`（已加入 `.gitignore`）
+2. 仓库本地 `data/raw/`（已加入 `.gitignore`）
 
 ## 面试讲解主线
 
