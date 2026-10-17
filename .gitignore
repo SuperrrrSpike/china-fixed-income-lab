@@ -13,4 +13,6 @@ dist/
 reports/*.xlsx
 reports/*.md
 reports/*.html
+reports/runs/
+.ci-runs/
 data/cache/

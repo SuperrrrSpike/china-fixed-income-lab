@@ -15,6 +15,8 @@
 - 计算关键期限日度 BP 变化、2Y-10Y 和 5Y-10Y 期限利差。
 - 跟踪国债、政策性金融债和信用债发行信息。
 - 生成结构化 Markdown 晨报和多工作表 Excel 数据包。
+- 提供数据获取、预处理校验、报告生成和产物审计的一体化流水线。
+- 每次流水线运行保存数据质量报告、文件 SHA-256 和运行参数清单。
 - 计算固定利率债净价、全价、应计利息和到期收益率。
 - 计算麦考利久期、修正久期、凸性和 DV01。
 - 模拟平行移位、陡峭化和扁平化情景下的债券价格损益。
@@ -55,6 +57,35 @@ python -m pip install -e '.[dev]' -i https://pypi.tuna.tsinghua.edu.cn/simple
 ```
 
 ## 快速演示
+
+运行完整离线流水线：
+
+```bash
+fixed-income-lab pipeline --source demo
+```
+
+运行官方数据流水线：
+
+```bash
+fixed-income-lab pipeline \
+  --source official \
+  --start 20260901 \
+  --end 20260921
+```
+
+流水线不会在官方数据失败时静默切换到合成数据。字段、重复键、数值范围或来源元数据校验失败时，命令返回失败且不发布半成品目录。
+
+每次成功运行写入独立目录，并包含：
+
+| 产物 | 用途 |
+| --- | --- |
+| `normalized_yield_curve.csv` | 标准化后的收益率曲线长表 |
+| `fixed_income_brief_*.md` | 可审阅的债券市场晨报 |
+| `fixed_income_brief_*.xlsx` | 多工作表分析数据包 |
+| `data_quality.json` | 数据行数、日期、期限、来源和检查结果 |
+| `manifest.json` | 运行参数、程序版本和产物 SHA-256 |
+
+也可以单独运行原有模块：
 
 生成离线示例晨报和 Excel：
 
@@ -112,6 +143,8 @@ pytest
 
 1. 环境变量 `FIXED_INCOME_DATA_DIR`
 2. 仓库本地 `data/raw/`（已加入 `.gitignore`）
+
+完整流水线默认写入 `reports/runs/<UTC时间>-<数据源>/`。使用 `--output` 可以指定运行目录的父目录。
 
 ## 面试讲解主线
 

@@ -1,17 +1,21 @@
 from __future__ import annotations
 
 import argparse
+import sys
 from pathlib import Path
 
 import pandas as pd
 
 from .bond import BondAnalytics, BondSpec
 from .data import (
+    DataSourceError,
     fetch_china_yield_curve,
     fetch_official_chinabond_curve,
     sample_dataset,
 )
 from .news import OpenAICompatibleClassifier, classify_news_frame
+from .pipeline import run_pipeline
+from .quality import DataQualityError
 from .report import write_report_bundle
 
 
@@ -78,6 +82,24 @@ def _classify_command(args: argparse.Namespace) -> int:
     return 0
 
 
+def _pipeline_command(args: argparse.Namespace) -> int:
+    if args.source != "demo" and (not args.start or not args.end):
+        print(
+            "error: --start and --end are required for official and akshare sources",
+            file=sys.stderr,
+        )
+        return 2
+    result = run_pipeline(
+        source=args.source,
+        start=args.start,
+        end=args.end,
+        destination=Path(args.output).expanduser() if args.output else None,
+        force_refresh=args.force_refresh,
+    )
+    print(result.run_dir)
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="China fixed-income analytics lab")
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -118,12 +140,35 @@ def build_parser() -> argparse.ArgumentParser:
     classify.add_argument("--output", required=True, help="Output CSV")
     classify.add_argument("--use-llm", action="store_true")
     classify.set_defaults(func=_classify_command)
+
+    pipeline = subparsers.add_parser(
+        "pipeline",
+        help="Run the validated data-to-report pipeline",
+    )
+    pipeline.add_argument(
+        "--source",
+        choices=("demo", "official", "akshare"),
+        default="official",
+    )
+    pipeline.add_argument("--start", help="YYYYMMDD; required for network sources")
+    pipeline.add_argument("--end", help="YYYYMMDD; required for network sources")
+    pipeline.add_argument("--output", help="Directory that receives audited run folders")
+    pipeline.add_argument(
+        "--force-refresh",
+        action="store_true",
+        help="Redownload official source files instead of using the cache",
+    )
+    pipeline.set_defaults(func=_pipeline_command)
     return parser
 
 
-def main() -> int:
-    args = build_parser().parse_args()
-    return args.func(args)
+def main(argv: list[str] | None = None) -> int:
+    args = build_parser().parse_args(argv)
+    try:
+        return args.func(args)
+    except (DataSourceError, DataQualityError, FileExistsError, OSError, ValueError) as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 1
 
 
 if __name__ == "__main__":
