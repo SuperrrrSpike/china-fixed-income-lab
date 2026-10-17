@@ -16,6 +16,8 @@ CATEGORY_KEYWORDS = {
     "信用": ("评级", "违约", "信用债", "信用利差", "展期"),
     "一级发行": ("发行", "招标", "中标", "簿记", "承销"),
 }
+ALLOWED_CATEGORIES = frozenset((*CATEGORY_KEYWORDS, "其他"))
+ALLOWED_IMPACTS = frozenset(("偏多", "中性", "偏空", "待评估"))
 
 
 def keyword_classify(title: str) -> tuple[str, str]:
@@ -79,12 +81,44 @@ class OpenAICompatibleClassifier:
                 body = json.loads(response.read().decode("utf-8"))
         except (urllib.error.URLError, json.JSONDecodeError) as exc:
             raise RuntimeError(f"LLM classification request failed: {exc}") from exc
-        content = body["choices"][0]["message"]["content"].strip()
+        try:
+            content = body["choices"][0]["message"]["content"]
+        except (KeyError, IndexError, TypeError) as exc:
+            raise ValueError("LLM classification response shape is invalid") from exc
+        if not isinstance(content, str):
+            raise ValueError("LLM classification response shape is invalid")
+        content = content.strip()
         content = re.sub(r"^```(?:json)?\s*|\s*```$", "", content)
-        items = json.loads(content)
+        try:
+            items = json.loads(content)
+        except json.JSONDecodeError as exc:
+            raise ValueError("LLM classification content is not valid JSON") from exc
         if not isinstance(items, list) or len(items) != len(titles):
             raise ValueError("LLM classification response has an unexpected shape")
-        return items
+        validated = []
+        for index, (title, item) in enumerate(zip(titles, items, strict=True)):
+            if not isinstance(item, dict):
+                raise ValueError(
+                    f"LLM classification item {index} must be an object"
+                )
+            if item.get("title") != title:
+                raise ValueError(
+                    f"LLM classification item {index} title does not match input"
+                )
+            category = item.get("category")
+            if category not in ALLOWED_CATEGORIES:
+                raise ValueError(
+                    f"LLM classification item {index} has an invalid category"
+                )
+            impact = item.get("impact")
+            if impact not in ALLOWED_IMPACTS:
+                raise ValueError(
+                    f"LLM classification item {index} has an invalid impact"
+                )
+            validated.append(
+                {"title": title, "category": category, "impact": impact}
+            )
+        return validated
 
 
 def classify_news_frame(
@@ -106,4 +140,3 @@ def classify_news_frame(
     result["impact"] = [item["impact"] for item in labels]
     result["classification_method"] = "llm_with_manual_review_required"
     return result
-
